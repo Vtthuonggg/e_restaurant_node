@@ -2,15 +2,17 @@ services:
   - name: socket-service
     type: web
     env: node
-    root: socket-service
-    buildCommand: cd socket-service && npm install
-    startCommand: npm start
+    branch: main
     plan: free
+    buildCommand: npm ci --prefix socket-service
+    startCommand: npm start --prefix socket-service
+    root: socket-service
 
   - name: text-order-service
     type: web
     env: node
-    root: text-order-service
-    buildCommand: cd text-order-service && npm install
-    startCommand: npm start
+    branch: main
     plan: free
+    buildCommand: npm ci --prefix text-order-service
+    startCommand: npm start --prefix text-order-service
+    root: text-order-service
