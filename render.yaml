@@ -1,0 +1,16 @@
+services:
+  - name: socket-service
+    type: web
+    env: node
+    root: socket-service
+    buildCommand: cd socket-service && npm install
+    startCommand: npm start
+    plan: free
+
+  - name: text-order-service
+    type: web
+    env: node
+    root: text-order-service
+    buildCommand: cd text-order-service && npm install
+    startCommand: npm start
+    plan: free
