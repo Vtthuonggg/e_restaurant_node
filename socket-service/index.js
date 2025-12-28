@@ -14,11 +14,17 @@ const io = new Server(server, {
 
 /* =======================
    SERVE STATIC FILES (HTML)
+   ĐẶT TRƯỚC CÁC NAMESPACE SOCKET
 ======================= */
 // Serve thư mục public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Route cho order.html
+// Route trang chủ
+app.get("/", (req, res) => {
+    res.send("Socket.IO running - E-Restaurant");
+});
+
+// Route cho order.html (explicit)
 app.get("/order.html", (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'order.html'));
 });
@@ -64,10 +70,6 @@ orderWebNamespace.on("connection", (socket) => {
 });
 
 /* ======================= */
-
-app.get("/", (req, res) => {
-    res.send("Socket.IO running");
-});
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
