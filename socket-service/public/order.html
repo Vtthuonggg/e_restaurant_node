@@ -334,14 +334,13 @@
         // Load products
         async function loadProducts() {
             try {
-                const response = await fetch(`${API_BASE_URL}/qr-order/products?apiKey=${apiKey}&roomId=${roomId}`);
+                const response = await fetch(`${API_BASE_URL}/qr-order/products?apiKey=${apiKey}`);
                 const data = await response.json();
 
                 if (data.status === 'success') {
                     products = data.data.products;
                     storeInfo = {
                         name: data.data.store_name,
-                        room: data.data.room
                     };
 
                     document.getElementById('storeName').textContent = storeInfo.name;
