@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đặt Món</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding-bottom: 100px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header .room-name {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #eee;
+        }
+
+        .product-info {
+            padding: 15px;
+        }
+
+        .product-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .product-price {
+            font-size: 20px;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .quantity-btn {
+            width: 35px;
+            height: 35px;
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .quantity-btn:hover {
+            background: #5568d3;
+        }
+
+        .quantity-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .quantity-display {
+            font-size: 18px;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .cart-summary {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+        }
+
+        .cart-info {
+            flex: 1;
+        }
+
+        .cart-total {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .cart-price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .order-btn {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .order-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .order-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .modal-message {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1 id="storeName">Đang tải...</h1>
+        <div class="room-name" id="roomName">Đang tải...</div>
+    </div>
+
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px;">Đang tải thực đơn...</p>
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="productsGrid" class="products-grid"></div>
+    </div>
+
+    <div class="cart-summary" id="cartSummary" style="display: none;">
+        <div class="cart-info">
+            <div class="cart-total" id="cartCount">0 món</div>
+            <div class="cart-price" id="cartTotal">0đ</div>
+        </div>
+        <button class="order-btn" id="orderBtn" onclick="submitOrder()">Đặt món</button>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-icon" id="modalIcon">⏳</div>
+            <div class="modal-title" id="modalTitle">Đang xử lý...</div>
+            <div class="modal-message" id="modalMessage">Vui lòng đợi</div>
+            <button class="modal-btn" id="modalBtn" onclick="closeModal()" style="display: none;">OK</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiKey = urlParams.get('apiKey');
+        const roomId = urlParams.get('roomId');
+        const roomName = decodeURIComponent(urlParams.get('roomName') || '');
+
+        const API_BASE_URL = "http://192.168.111.43:8000/api";
+        const SOCKET_URL = "https://e-restaurant-node.onrender.com";
+
+        let products = [];
+        let cart = {};
+        let storeInfo = {};
+
+        // Load products
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/qr-order/products?apiKey=${apiKey}&roomId=${roomId}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    products = data.data.products;
+                    storeInfo = {
+                        name: data.data.store_name,
+                        room: data.data.room
+                    };
+
+                    document.getElementById('storeName').textContent = storeInfo.name;
+                    document.getElementById('roomName').textContent = `Bàn: ${roomName}`;
+                    document.getElementById('loading').style.display = 'none';
+
+                    renderProducts();
+                } else {
+                    showError(data.message || 'Không thể tải thực đơn');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <img src="${product.image || 'https://via.placeholder.com/300x200?text=No+Image'}" 
+                         alt="${product.name}" 
+                         class="product-image"
+                         onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+                    <div class="product-info">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-price">${formatPrice(product.retail_cost)}</div>
+                        <div class="quantity-control">
+                            <button class="quantity-btn" onclick="updateQuantity(${product.id}, -1)">−</button>
+                            <div class="quantity-display" id="qty-${product.id}">0</div>
+                            <button class="quantity-btn" onclick="updateQuantity(${product.id}, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateQuantity(productId, delta) {
+            const currentQty = cart[productId] || 0;
+            const newQty = Math.max(0, currentQty + delta);
+
+            if (newQty === 0) {
+                delete cart[productId];
+            } else {
+                cart[productId] = newQty;
+            }
+
+            document.getElementById(`qty-${productId}`).textContent = newQty;
+            updateCartSummary();
+        }
+
+        function updateCartSummary() {
+            const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+            const totalPrice = Object.entries(cart).reduce((sum, [id, qty]) => {
+                const product = products.find(p => p.id == id);
+                return sum + (product ? product.retail_cost * qty : 0);
+            }, 0);
+
+            const summary = document.getElementById('cartSummary');
+            if (totalItems > 0) {
+                summary.style.display = 'flex';
+                document.getElementById('cartCount').textContent = `${totalItems} món`;
+                document.getElementById('cartTotal').textContent = formatPrice(totalPrice);
+            } else {
+                summary.style.display = 'none';
+            }
+        }
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(price);
+        }
+
+        async function submitOrder() {
+            if (Object.keys(cart).length === 0) {
+                return;
+            }
+
+            showModal('⏳', 'Đang xử lý...', 'Vui lòng đợi');
+
+            const orderDetail = Object.entries(cart).map(([productId, quantity]) => {
+                const product = products.find(p => p.id == productId);
+                return {
+                    product_id: parseInt(productId),
+                    quantity: quantity,
+                    retail_cost: product.retail_cost
+                };
+            });
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/qr-order/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        roomId: roomId,
+                        order_detail: orderDetail,
+                        note: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Send notification via socket
+                    sendSocketNotification(data.data.socket_data);
+
+                    showModal('✅', 'Đặt món thành công!', 'Món ăn của bạn đang được chuẩn bị', true);
+
+                    // Reset cart
+                    cart = {};
+                    products.forEach(p => {
+                        const qtyEl = document.getElementById(`qty-${p.id}`);
+                        if (qtyEl) qtyEl.textContent = '0';
+                    });
+                    updateCartSummary();
+                } else {
+                    showModal('❌', 'Đặt món thất bại', data.message || 'Vui lòng thử lại', true);
+                }
+            } catch (error) {
+                showModal('❌', 'Lỗi kết nối', error.message, true);
+            }
+        }
+
+        function sendSocketNotification(socketData) {
+            try {
+                const socket = io(SOCKET_URL + '/order');
+
+                socket.on('connect', () => {
+                    console.log('Socket connected');
+                    socket.emit('order:create', socketData);
+
+                    // Disconnect after sending
+                    setTimeout(() => socket.disconnect(), 1000);
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('Socket connection error:', error);
+                });
+            } catch (error) {
+                console.error('Socket error:', error);
+            }
+        }
+
+        function showModal(icon, title, message, showBtn = false) {
+            document.getElementById('modalIcon').textContent = icon;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('modalBtn').style.display = showBtn ? 'inline-block' : 'none';
+            document.getElementById('modal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        // Initialize
+        if (!apiKey || !roomId) {
+            showError('Thiếu thông tin. Vui lòng quét lại mã QR.');
+        } else {
+            loadProducts();
+        }
+    </script>
+</body>
+
+</html>

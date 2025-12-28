@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
@@ -9,6 +10,17 @@ const io = new Server(server, {
     cors: {
         origin: "*"
     }
+});
+
+/* =======================
+   SERVE STATIC FILES (HTML)
+======================= */
+// Serve thư mục public
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Route cho order.html
+app.get("/order.html", (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'order.html'));
 });
 
 /* =======================
