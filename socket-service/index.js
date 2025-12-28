@@ -18,7 +18,7 @@ const io = new Server(server, {
 /* =======================
    PROXY API TO LARAVEL
 ======================= */
-const LARAVEL_API_URL = "http://192.168.111.43:8000/api";
+const LARAVEL_API_URL = process.env.LARAVEL_API_URL || "http://192.168.111.43:8000/api";
 
 // Proxy GET products
 app.get("/api/qr-order/products", async (req, res) => {
