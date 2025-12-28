@@ -2,9 +2,12 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
+const fetch = require("node-fetch"); // Cần cài: npm install node-fetch@2
 
 const app = express();
 const server = http.createServer(app);
+
+app.use(express.json());
 
 const io = new Server(server, {
     cors: {
@@ -13,18 +16,46 @@ const io = new Server(server, {
 });
 
 /* =======================
-   SERVE STATIC FILES (HTML)
-   ĐẶT TRƯỚC CÁC NAMESPACE SOCKET
+   PROXY API TO LARAVEL
 ======================= */
-// Serve thư mục public
+const LARAVEL_API_URL = "http://192.168.111.43:8000/api";
+
+// Proxy GET products
+app.get("/api/qr-order/products", async (req, res) => {
+    try {
+        const apiKey = req.query.apiKey;
+        const response = await fetch(`${LARAVEL_API_URL}/qr-order/products?apiKey=${apiKey}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+});
+
+// Proxy POST create order
+app.post("/api/qr-order/create", async (req, res) => {
+    try {
+        const response = await fetch(`${LARAVEL_API_URL}/qr-order/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: error.message });
+    }
+});
+
+/* =======================
+   SERVE STATIC FILES (HTML)
+======================= */
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Route trang chủ
 app.get("/", (req, res) => {
     res.send("Socket.IO running - E-Restaurant");
 });
 
-// Route cho order.html (explicit)
 app.get("/order.html", (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'order.html'));
 });
@@ -39,8 +70,6 @@ orderNamespace.on("connection", (socket) => {
 
     socket.on("order:create", (data) => {
         console.log("New order:", data);
-
-        // gửi sang web quản lý
         orderWebNamespace.emit("order:new", data);
     });
 
@@ -59,8 +88,6 @@ orderWebNamespace.on("connection", (socket) => {
 
     socket.on("order:status", (data) => {
         console.log("Update status:", data);
-
-        // gửi ngược lại cho app / bếp
         orderNamespace.emit("order:update", data);
     });
 
