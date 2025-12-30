@@ -478,19 +478,54 @@
             try {
                 const socket = io(SOCKET_URL + '/order');
 
-                socket.on('connect', () => {
-                    console.log('Socket connected');
-                    socket.emit('order:create', socketData);
+                // helper decode base64 roomId nếu BE trả base64
+                function decodeRoomId(val) {
+                    if (!val) return null;
+                    try {
+                        if (typeof val === 'string' && /^[A-Za-z0-9+/=]+$/.test(val) && val.length % 4 === 0) {
+                            const decoded = atob(val);
+                            const n = parseInt(decoded, 10);
+                            return isNaN(n) ? decoded : n;
+                        }
+                        return val;
+                    } catch (e) {
+                        return val;
+                    }
+                }
 
-                    // Disconnect after sending
-                    setTimeout(() => socket.disconnect(), 1000);
+                socket.on('connect', () => {
+                    console.log('Socket connected', socket.id);
+
+                    const payload = {
+                        roomId: socketData.roomId ?? socketData.room_id ?? decodeRoomId(socketData.roomIdBase64) ?? (roomId ? decodeRoomId(roomId) : null),
+                        order_id: socketData.order_id ?? socketData.orderId ?? socketData.orderIdCreated ?? null,
+                        area_name: socketData.area_name ?? socketData.roomName ?? socketData.area ?? null,
+                        description: socketData.description ?? (() => {
+                            if (Array.isArray(socketData.products) && socketData.products.length > 0) {
+                                const list = socketData.products.map(p => `- ${p}`).join('\n');
+                                const fromRoom = roomName ? `Đặt món từ bàn: ${roomName}\n\n` : 'Đặt món từ bàn:\n\n';
+                                return fromRoom + list;
+                            }
+                            return socketData.note ?? socketData.message ?? null;
+                        })(),
+                        apiKey: socketData.apiKey ?? apiKey ?? null
+                    };
+
+                    console.log('Emitting order:create payload:', payload);
+
+                    socket.emit('order:create', payload);
+
+                    setTimeout(() => {
+                        socket.disconnect();
+                        console.log('Socket disconnected');
+                    }, 800);
                 });
 
                 socket.on('connect_error', (error) => {
                     console.error('Socket connection error:', error);
                 });
             } catch (error) {
-                console.error('Socket error:', error);
+                console.error('sendSocketNotification error:', error);
             }
         }
 
