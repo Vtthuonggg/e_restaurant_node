@@ -1,0 +1,18 @@
+services:
+  - name: socket-service
+    type: web
+    env: node
+    branch: main
+    plan: free
+    buildCommand: npm ci --prefix socket-service
+    startCommand: npm start --prefix socket-service
+    root: socket-service
+
+  - name: text-order-service
+    type: web
+    env: node
+    branch: main
+    plan: free
+    buildCommand: npm ci --prefix text-order-service
+    startCommand: npm start --prefix text-order-service
+    root: text-order-service

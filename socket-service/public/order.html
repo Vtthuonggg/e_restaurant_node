@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Đặt Món</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .header .room-name {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 16px;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 16px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        @media (min-width: 500px) {
+            .products-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 720px;
+                padding: 16px;
+            }
+
+            .products-grid {
+                gap: 16px;
+            }
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .product-card:active {
+            transform: scale(0.98);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background: #eee;
+        }
+
+        .product-info {
+            padding: 12px;
+        }
+
+        .product-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+            line-height: 1.3;
+        }
+
+        .product-price {
+            font-size: 18px;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 6px;
+        }
+
+        .quantity-btn {
+            width: 38px;
+            height: 38px;
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.1s;
+            flex-shrink: 0;
+        }
+
+        .quantity-btn:active {
+            transform: scale(0.92);
+            background: #5568d3;
+        }
+
+        .quantity-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .quantity-display {
+            font-size: 18px;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .cart-summary {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 12px 16px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+        }
+
+        .cart-info {
+            flex: 1;
+        }
+
+        .cart-total {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .cart-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .order-btn {
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+
+        .order-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .order-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            max-width: 90%;
+            width: 360px;
+            text-align: center;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-icon {
+            font-size: 56px;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .modal-message {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 28px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1 id="storeName">Đang tải...</h1>
+        <div class="room-name" id="roomName">Đang tải...</div>
+    </div>
+
+    <div class="container">
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 12px;">Đang tải thực đơn...</p>
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="productsGrid" class="products-grid"></div>
+    </div>
+
+    <div class="cart-summary" id="cartSummary" style="display: none;">
+        <div class="cart-info">
+            <div class="cart-total" id="cartCount">0 món</div>
+            <div class="cart-price" id="cartTotal">0đ</div>
+        </div>
+        <button class="order-btn" id="orderBtn" onclick="submitOrder()">Đặt món</button>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-icon" id="modalIcon">⏳</div>
+            <div class="modal-title" id="modalTitle">Đang xử lý...</div>
+            <div class="modal-message" id="modalMessage">Vui lòng đợi</div>
+            <button class="modal-btn" id="modalBtn" onclick="closeModal()" style="display: none;">OK</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiKey = urlParams.get('apiKey');
+        const roomId = urlParams.get('roomId');
+        const roomName = decodeURIComponent(urlParams.get('roomName') || '');
+
+        const API_BASE_URL = "https://daniell-unegoistical-unarrogantly.ngrok-free.dev/api";
+        // Socket URL dùng window.location.origin (ngrok)
+        const SOCKET_URL = window.location.origin;
+
+        let products = [];
+        let cart = {};
+        let storeInfo = {};
+
+        // Load products
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/qr-order/products?apiKey=${apiKey}`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    products = data.data.products;
+                    storeInfo = {
+                        name: data.data.store_name,
+                    };
+
+                    document.getElementById('storeName').textContent = storeInfo.name;
+                    document.getElementById('roomName').textContent = `Bàn: ${roomName}`;
+                    document.getElementById('loading').style.display = 'none';
+
+                    renderProducts();
+                } else {
+                    showError(data.message || 'Không thể tải thực đơn');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <img src="${product.image || 'https://via.placeholder.com/300x200?text=No+Image'}" 
+                         alt="${product.name}" 
+                         class="product-image"
+                         onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
+                    <div class="product-info">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-price">${formatPrice(product.retail_cost)}</div>
+                        <div class="quantity-control">
+                            <button class="quantity-btn" onclick="updateQuantity(${product.id}, -1)">−</button>
+                            <div class="quantity-display" id="qty-${product.id}">0</div>
+                            <button class="quantity-btn" onclick="updateQuantity(${product.id}, 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateQuantity(productId, delta) {
+            const currentQty = cart[productId] || 0;
+            const newQty = Math.max(0, currentQty + delta);
+
+            if (newQty === 0) {
+                delete cart[productId];
+            } else {
+                cart[productId] = newQty;
+            }
+
+            document.getElementById(`qty-${productId}`).textContent = newQty;
+            updateCartSummary();
+        }
+
+        function updateCartSummary() {
+            const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+            const totalPrice = Object.entries(cart).reduce((sum, [id, qty]) => {
+                const product = products.find(p => p.id == id);
+                return sum + (product ? product.retail_cost * qty : 0);
+            }, 0);
+
+            const summary = document.getElementById('cartSummary');
+            if (totalItems > 0) {
+                summary.style.display = 'flex';
+                document.getElementById('cartCount').textContent = `${totalItems} món`;
+                document.getElementById('cartTotal').textContent = formatPrice(totalPrice);
+            } else {
+                summary.style.display = 'none';
+            }
+        }
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(price);
+        }
+
+        async function submitOrder() {
+            if (Object.keys(cart).length === 0) {
+                return;
+            }
+
+            showModal('⏳', 'Đang xử lý...', 'Vui lòng đợi');
+
+            const orderDetail = Object.entries(cart).map(([productId, quantity]) => {
+                const product = products.find(p => p.id == productId);
+                return {
+                    product_id: parseInt(productId),
+                    quantity: quantity,
+                    price: product.retail_cost
+                };
+            });
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/qr-order/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        roomId: roomId,
+                        order_detail: orderDetail,
+                        note: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    // Send notification via socket
+                    sendSocketNotification(data.data.socket_data);
+
+                    showModal('✅', 'Đặt món thành công!', 'Món ăn của bạn đang được chuẩn bị', true);
+
+                    // Reset cart
+                    cart = {};
+                    products.forEach(p => {
+                        const qtyEl = document.getElementById(`qty-${p.id}`);
+                        if (qtyEl) qtyEl.textContent = '0';
+                    });
+                    updateCartSummary();
+                } else {
+                    showModal('❌', 'Đặt món thất bại', data.message || 'Vui lòng thử lại', true);
+                }
+            } catch (error) {
+                showModal('❌', 'Lỗi kết nối', error.message, true);
+            }
+        }
+
+        function sendSocketNotification(socketData) {
+            try {
+                const socket = io(SOCKET_URL + '/order');
+
+                // helper decode base64 roomId nếu BE trả base64
+                function decodeRoomId(val) {
+                    if (!val) return null;
+                    try {
+                        if (typeof val === 'string' && /^[A-Za-z0-9+/=]+$/.test(val) && val.length % 4 === 0) {
+                            const decoded = atob(val);
+                            const n = parseInt(decoded, 10);
+                            return isNaN(n) ? decoded : n;
+                        }
+                        return val;
+                    } catch (e) {
+                        return val;
+                    }
+                }
+
+                socket.on('connect', () => {
+                    console.log('Socket connected', socket.id);
+
+                    const payload = {
+                        roomId: socketData.roomId ?? socketData.room_id ?? decodeRoomId(socketData.roomIdBase64) ?? (roomId ? decodeRoomId(roomId) : null),
+                        order_id: socketData.order_id ?? socketData.orderId ?? socketData.orderIdCreated ?? null,
+                        area_name: socketData.area_name ?? socketData.roomName ?? socketData.area ?? null,
+                        description: socketData.description ?? (() => {
+                            if (Array.isArray(socketData.products) && socketData.products.length > 0) {
+                                const list = socketData.products.map(p => `- ${p}`).join('\n');
+                                const fromRoom = roomName ? `Đặt món từ bàn: ${roomName}\n\n` : 'Đặt món từ bàn:\n\n';
+                                return fromRoom + list;
+                            }
+                            return socketData.note ?? socketData.message ?? null;
+                        })(),
+                        apiKey: socketData.apiKey ?? apiKey ?? null
+                    };
+
+                    console.log('Emitting order:create payload:', payload);
+
+                    socket.emit('order:create', payload);
+
+                    setTimeout(() => {
+                        socket.disconnect();
+                        console.log('Socket disconnected');
+                    }, 800);
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('Socket connection error:', error);
+                });
+            } catch (error) {
+                console.error('sendSocketNotification error:', error);
+            }
+        }
+
+        function showModal(icon, title, message, showBtn = false) {
+            document.getElementById('modalIcon').textContent = icon;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('modalBtn').style.display = showBtn ? 'inline-block' : 'none';
+            document.getElementById('modal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+
+        // Initialize
+        if (!apiKey || !roomId) {
+            showError('Thiếu thông tin. Vui lòng quét lại mã QR.');
+        } else {
+            loadProducts();
+        }
+    </script>
+</body>
+
+</html>
