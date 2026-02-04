@@ -157,7 +157,7 @@ async function buildOrder(parsedData, userId) {
         note: parsedData.note || null,
         discount: parsedData.discount || 0,
         discount_type: parsedData.discount_type || 1,
-        status_order: 1, // Đã xác nhận
+        status_order: 2, // Chưa thanh toán
         payment: null,
         order_detail: order_detail,
         user_id: userId,

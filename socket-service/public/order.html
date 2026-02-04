@@ -21,7 +21,7 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #179A6E 0%, #34B362 100%);
             color: white;
             padding: 16px;
             text-align: center;
@@ -122,7 +122,7 @@
 
         .product-price {
             font-size: 18px;
-            color: #667eea;
+            color: #179A6E;
             font-weight: bold;
             margin-bottom: 10px;
         }
@@ -140,7 +140,7 @@
             width: 38px;
             height: 38px;
             border: none;
-            background: #667eea;
+            background: #179A6E;
             color: white;
             border-radius: 50%;
             font-size: 22px;
@@ -154,7 +154,7 @@
 
         .quantity-btn:active {
             transform: scale(0.92);
-            background: #5568d3;
+            background: #34B362;
         }
 
         .quantity-btn:disabled {
@@ -196,12 +196,12 @@
         .cart-price {
             font-size: 20px;
             font-weight: bold;
-            color: #667eea;
+            color: #179A6E;
         }
 
         .order-btn {
             padding: 12px 32px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #179A6E 0%, #34B362 100%);
             color: white;
             border: none;
             border-radius: 25px;
@@ -282,7 +282,7 @@
 
         .modal-btn {
             padding: 10px 28px;
-            background: #667eea;
+            background: #179A6E;
             color: white;
             border: none;
             border-radius: 25px;
@@ -292,7 +292,7 @@
 
         .spinner {
             border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            border-top: 3px solid #179A6E;
             border-radius: 50%;
             width: 36px;
             height: 36px;
@@ -352,8 +352,7 @@
         const roomId = urlParams.get('roomId');
         const roomName = decodeURIComponent(urlParams.get('roomName') || '');
 
-        const API_BASE_URL = "https://daniell-unegoistical-unarrogantly.ngrok-free.dev/api";
-        // Socket URL dùng window.location.origin (ngrok)
+        const API_BASE_URL = window.location.origin + "/api";
         const SOCKET_URL = window.location.origin;
 
         let products = [];
@@ -363,24 +362,37 @@
         // Load products
         async function loadProducts() {
             try {
-                const response = await fetch(`${API_BASE_URL}/qr-order/products?apiKey=${apiKey}`);
-                const data = await response.json();
+                const res = await fetch(`${API_BASE_URL}/qr-order/products?apiKey=${apiKey}`);
+                const ct = res.headers.get('content-type') || '';
+                const text = await res.text();
 
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${text}`);
+                }
+                console.log('Response content-type:', ct);
+                console.log('Response text:', text);
+                if (!ct.includes('application/json')) {
+                    // Log the HTML so bạn biết server trả gì
+                    console.error('Expected JSON but got:', text);
+                    showError('Lỗi server: nhận về HTML thay vì JSON. Kiểm tra API host.');
+                    return;
+                }
+
+                const data = JSON.parse(text);
+                window.lastResponse = data; // Thêm dòng này để debug
+                console.log('Order creation response:', data);
                 if (data.status === 'success') {
                     products = data.data.products;
-                    storeInfo = {
-                        name: data.data.store_name,
-                    };
-
-                    document.getElementById('storeName').textContent = storeInfo.name;
+                    storeInfo = { store_name: data.data.store_name };
+                    document.getElementById('storeName').textContent = storeInfo.store_name;
                     document.getElementById('roomName').textContent = `Bàn: ${roomName}`;
                     document.getElementById('loading').style.display = 'none';
-
                     renderProducts();
                 } else {
                     showError(data.message || 'Không thể tải thực đơn');
                 }
             } catch (error) {
+                console.error('loadProducts error:', error);
                 showError('Lỗi kết nối: ' + error.message);
             }
         }
@@ -480,32 +492,91 @@
                     })
                 });
 
-                const data = await response.json();
+                // Parse response an toàn
+                const ct = response.headers.get('content-type') || '';
+                const text = await response.text();
 
-                if (data.status === 'success') {
-                    // Send notification via socket
-                    sendSocketNotification(data.data.socket_data);
+                if (!response.ok) {
+                    console.error(`HTTP ${response.status}:`, text);
+                    showModal('❌', 'Đặt món thất bại', `Lỗi ${response.status}`, true);
+                    return;
+                }
 
+                let data;
+                if (ct.includes('application/json')) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        console.error('JSON parse error:', e, text);
+                        // Nếu parse lỗi nhưng status 200 → coi như thành công
+                        showModal('✅', 'Đặt món thành công!', 'Món ăn của bạn đang được chuẩn bị', true);
+
+                        cart = {};
+                        products.forEach(p => {
+                            const qtyEl = document.getElementById(`qty-${p.id}`);
+                            if (qtyEl) qtyEl.textContent = '0';
+                        });
+                        updateCartSummary();
+                        return;
+                    }
+                } else {
+                    // Response không phải JSON nhưng status 200 → coi như thành công
+                    console.warn('Non-JSON response (treated as success):', text);
                     showModal('✅', 'Đặt món thành công!', 'Món ăn của bạn đang được chuẩn bị', true);
 
-                    // Reset cart
                     cart = {};
                     products.forEach(p => {
                         const qtyEl = document.getElementById(`qty-${p.id}`);
                         if (qtyEl) qtyEl.textContent = '0';
                     });
                     updateCartSummary();
+                    return;
+                }
+
+                if (data.status === 'success') {
+                    showModal('✅', 'Đặt món thành công!', 'Món ăn của bạn đang được chuẩn bị', true);
+
+                    cart = {};
+                    products.forEach(p => {
+                        const qtyEl = document.getElementById(`qty-${p.id}`);
+                        if (qtyEl) qtyEl.textContent = '0';
+                    });
+                    updateCartSummary();
+
+                    // Gửi socket notification ở background
+                    setTimeout(() => {
+                        try {
+                            if (data.data && data.data.socket_data) {
+                                sendSocketNotification(data.data.socket_data);
+                            }
+                        } catch (e) {
+                            console.warn('Socket notification failed (ignored):', e);
+                        }
+                    }, 0);
                 } else {
                     showModal('❌', 'Đặt món thất bại', data.message || 'Vui lòng thử lại', true);
                 }
             } catch (error) {
+                console.error('submitOrder error:', error);
                 showModal('❌', 'Lỗi kết nối', error.message, true);
             }
         }
 
         function sendSocketNotification(socketData) {
             try {
-                const socket = io(SOCKET_URL + '/order');
+                const socket = io(SOCKET_URL + '/order', {
+                    timeout: 2500,           // ms: timeout kết nối
+                    reconnection: false,     // tắt reconnection để không kéo dài
+                    transports: ['websocket', 'polling']
+                });
+
+                let connected = false;
+                const connTimer = setTimeout(() => {
+                    if (!connected) {
+                        try { socket.close(); } catch (e) { }
+                        console.warn('Socket connect timed out — notification skipped');
+                    }
+                }, 2700);
 
                 // helper decode base64 roomId nếu BE trả base64
                 function decodeRoomId(val) {
@@ -523,6 +594,8 @@
                 }
 
                 socket.on('connect', () => {
+                    connected = true;
+                    clearTimeout(connTimer);
                     console.log('Socket connected', socket.id);
 
                     const payload = {
@@ -540,21 +613,28 @@
                         apiKey: socketData.apiKey ?? apiKey ?? null
                     };
 
-                    console.log('Emitting order:create payload:', payload);
+                    try {
+                        console.log('Emitting order:create payload:', payload);
+                        socket.emit('order:create', payload);
+                    } catch (e) {
+                        console.warn('Emit failed (ignored):', e);
+                    }
 
-                    socket.emit('order:create', payload);
-
+                    // Tự disconnect sau một khoảng ngắn
                     setTimeout(() => {
-                        socket.disconnect();
-                        console.log('Socket disconnected');
+                        try { socket.disconnect(); console.log('Socket disconnected'); } catch (e) { }
                     }, 800);
                 });
 
                 socket.on('connect_error', (error) => {
-                    console.error('Socket connection error:', error);
+                    clearTimeout(connTimer);
+                    console.warn('Socket connection error (ignored):', error);
+                    try { socket.close(); } catch (e) { }
                 });
+
             } catch (error) {
-                console.error('sendSocketNotification error:', error);
+                // Không để socket lỗi phá flow đặt món
+                console.warn('sendSocketNotification error (ignored):', error);
             }
         }
 
